@@ -161,6 +161,7 @@ export function apiErrorResponse(
   error: unknown,
   fallbackStatus = 500
 ): NextResponse {
+  console.error("[apiErrorResponse]", error);
   const formatted = formatError(error);
   const status =
     error instanceof AppError ? error.statusCode : fallbackStatus;

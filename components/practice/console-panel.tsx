@@ -74,9 +74,8 @@ export function ConsolePanel({
 
   const hasResults = Boolean(visibleResults || submitResult || error);
 
-  // Detect any compilation, syntax, or runtime error from run or submit
-  const primaryErrorText =
-    error ||
+  // Detect any compilation, syntax, or runtime error directly from sandbox code execution
+  const codeErrorText =
     submitResult?.compilationError ||
     submitResult?.runtimeError ||
     submitResult?.tests.find((t) => t.stderr)?.stderr ||
@@ -86,13 +85,15 @@ export function ConsolePanel({
     null;
 
   const isSyntaxOrCompileError =
-    Boolean(primaryErrorText) &&
-    (/SyntaxError/i.test(primaryErrorText ?? "") ||
+    Boolean(codeErrorText) &&
+    (/SyntaxError/i.test(codeErrorText ?? "") ||
       /compile_error/i.test(submitResult?.tests[0]?.category ?? "") ||
-      /compile/i.test(primaryErrorText ?? "") ||
-      /Unexpected token/i.test(primaryErrorText ?? "") ||
-      /ReferenceError/i.test(primaryErrorText ?? "") ||
-      /TypeError/i.test(primaryErrorText ?? ""));
+      /compile/i.test(codeErrorText ?? "") ||
+      /Unexpected token/i.test(codeErrorText ?? "") ||
+      /ReferenceError/i.test(codeErrorText ?? "") ||
+      /TypeError/i.test(codeErrorText ?? ""));
+
+  const hasError = Boolean(codeErrorText || error);
 
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-200 shadow-xs">
@@ -132,7 +133,7 @@ export function ConsolePanel({
             {hasResults ? (
               <span
                 className={`size-2 rounded-full ${
-                  (submitResult?.correct || visibleResults?.every((r) => r.passed)) && !primaryErrorText
+                  (submitResult?.correct || visibleResults?.every((r) => r.passed)) && !hasError
                     ? "bg-emerald-500"
                     : "bg-rose-500"
                 }`}
@@ -214,8 +215,32 @@ export function ConsolePanel({
           ) : (
             /* Test Result Tab */
             <div className="space-y-4">
-              {/* High-Visibility Execution & Syntax Error Banner */}
-              {primaryErrorText ? (
+              {/* Platform / Server / Network Error Alert */}
+              {error ? (
+                <div className="overflow-hidden rounded-xl border border-amber-500/40 bg-linear-to-b from-amber-950/40 to-amber-950/20 text-amber-200 shadow-md">
+                  <div className="flex items-center justify-between border-b border-amber-500/30 bg-amber-900/30 px-3.5 py-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <AlertOctagon className="size-4 text-amber-400 shrink-0" />
+                      <span className="font-bold tracking-tight text-amber-300">
+                        Evaluation Service Notice
+                      </span>
+                    </div>
+                    <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-mono font-semibold text-amber-300 border border-amber-500/30">
+                      Platform Connection
+                    </span>
+                  </div>
+                  <div className="p-3.5 space-y-2 text-xs text-amber-200/90">
+                    <p className="text-[11px] leading-relaxed">
+                      {error === "An internal error occurred"
+                        ? "The evaluation service or database was temporarily unreachable. The database container has been restarted — please click Run or Submit again."
+                        : error}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* High-Visibility Student Code Execution & Syntax Error Banner */}
+              {codeErrorText ? (
                 <div className="overflow-hidden rounded-xl border border-rose-500/40 bg-linear-to-b from-rose-950/40 to-rose-950/20 text-rose-200 shadow-lg">
                   <div className="flex items-center justify-between border-b border-rose-500/30 bg-rose-900/30 px-3.5 py-2 text-xs">
                     <div className="flex items-center gap-2">
@@ -238,7 +263,7 @@ export function ConsolePanel({
                     </div>
 
                     <pre className="max-h-48 overflow-auto rounded-lg bg-black/80 p-3 font-mono text-[11px] text-rose-300 border border-rose-900/60 whitespace-pre-wrap leading-relaxed selection:bg-rose-900/50">
-                      {primaryErrorText}
+                      {codeErrorText}
                     </pre>
                   </div>
                 </div>
@@ -398,7 +423,7 @@ export function ConsolePanel({
                 </div>
               ) : null}
 
-              {!visibleResults && !submitResult && !primaryErrorText ? (
+              {!visibleResults && !submitResult && !hasError ? (
                 <div className="py-8 text-center text-xs text-zinc-500 font-mono">
                   You must run your code first to view execution test results.
                 </div>
